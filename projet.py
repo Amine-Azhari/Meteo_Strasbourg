@@ -8,6 +8,7 @@ class Plotting:
     COLS = 4 # 4 pour 10
 
     def __init__(self, duree):
+        self.duree = duree
         self.ZOOM = (1/duree) * 1.2
 
     
@@ -116,7 +117,9 @@ class Plotting:
     def autocorr_scipy(var, filter_type=None, cutoff=0.01):
         s = pd.to_numeric(df[var], errors="coerce").dropna().values
         if len(s) == 0:
+            print(f"Pas de données exploitables pour {var}")
             return np.array([]), np.array([])
+
 
         fs = 1
         if filter_type == 'low':
@@ -124,40 +127,40 @@ class Plotting:
         elif filter_type == 'high':
             s = Plotting.highpass_filter(s, fs, cutoff)
 
-        s = s - np.mean(s)
-        norm = np.sum(s**2)
+        s = s - np.mean(s) # Pour eviter haute correlation alors que c'est la composante constante, on l'enleve
+        norm = np.sum(s**2) # Sinon la fonction fait n'importe quoi
         corr = correlate(s, s, mode="full") / norm
         lags = np.arange(-len(s)+1, len(s))
         return lags, corr
 
 
-    def plot_autocorr(self, ax, var, max_lag=400, filter_type=None, cutoff=0.01):
+    def plot_autocorr(self, ax, var, filter_type=None, cutoff=0.01):
         lags, corr = self.autocorr_scipy(var, filter_type=filter_type, cutoff=cutoff)
         if len(lags) == 0:
             ax.set_title(f"{var} (no data)")
             return
 
-        mask = (lags >= 0) & (lags <= max_lag)
-        lags_plot = lags[mask]
-        corr_plot = corr[mask]
+        mask = (lags <= self.duree)
+        lags = lags[mask]
+        corr = corr[mask]
 
-        ax.plot(lags_plot, corr_plot)
+        ax.plot(lags, corr)
         ax.set_title(f"Autocorr: {var} ({filter_type if filter_type else 'raw'})")
         ax.set_xlabel("Décalage (jours)")
         ax.set_ylabel("Corrélation")
-        ax.set_xlim(0, max_lag)
-        ax.set_ylim(-0.2, 1)
+        ax.set_xlim(0, max(lags))
+        ax.set_ylim(-1, 1.2)
 
         # mark 1-year period
-        if max_lag >= 365:
+        if max(lags) >= 365:
             ax.axvline(365, color='r', linestyle='--', label='1 an')
             ax.legend()
 
-    def plot_autocorrs(self, args, max_lag=400, filter_type=None, cutoff=0.01):
+    def plot_autocorrs(self, args, filter_type=None, cutoff=0.01):
         fig, axes = plt.subplots(self.ROWS, self.COLS, figsize=(16, 4*self.ROWS))
         axes = axes.flatten()
         for ax, var in zip(axes, args):
-            self.plot_autocorr(ax, var, max_lag=max_lag, filter_type=filter_type, cutoff=cutoff)
+            self.plot_autocorr(ax, var, filter_type=filter_type, cutoff=cutoff)
         for ax in axes[len(args):]:
             ax.axis("off")
         plt.tight_layout()
