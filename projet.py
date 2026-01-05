@@ -156,6 +156,7 @@ class Plotting:
             ax.axvline(365, color='r', linestyle='--', label='1 an')
             ax.legend()
 
+
     def plot_autocorrs(self, args, filter_type=None, cutoff=0.01):
         fig, axes = plt.subplots(self.ROWS, self.COLS, figsize=(16, 4*self.ROWS))
         axes = axes.flatten()
@@ -173,15 +174,13 @@ if __name__ == "__main__":
 
     duree = int(input("Insérer période recherchée en jours: "))
     print("Des pics vers les extrémités droite et gauche du graphe indiquent une périodicité sur la durée")
-
-    pltr = Plotting(duree)
-
     filter_choice = input("Filtre? (none / low / high): ").lower()
     cutoff_value = float(input("Valeur cutoff (ex: 0.01): "))
 
+    pltr = Plotting(duree)
+
     pltr.plot(args, filter_type=filter_choice, cutoff=cutoff_value)
-    pltr.plot_autocorrs(args)
-    #i = 3
-    #pltr.spectro(args[i], filter_type=filter_choice, cutoff=cutoff_value)
+    #pltr.plot_spectros_grid(args, filter_type=filter_choice, cutoff=cutoff_value)
+    pltr.plot_autocorrs(args, filter_type=filter_choice, cutoff=cutoff_value)
 
     plt.show()
