@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import spectrogram, butter, filtfilt
+from scipy.signal import spectrogram, butter, filtfilt, correlate
 
 class Plotting:
     ROWS = 3 # 3 pour 10
@@ -112,8 +112,55 @@ class Plotting:
         plt.show()
 
 
+    @staticmethod
+    def autocorr_scipy(var, filter_type=None, cutoff=0.01):
+        s = pd.to_numeric(df[var], errors="coerce").dropna().values
+        if len(s) == 0:
+            return np.array([]), np.array([])
+
+        fs = 1
+        if filter_type == 'low':
+            s = Plotting.lowpass_filter(s, fs, cutoff)
+        elif filter_type == 'high':
+            s = Plotting.highpass_filter(s, fs, cutoff)
+
+        s = s - np.mean(s)
+        norm = np.sum(s**2)
+        corr = correlate(s, s, mode="full") / norm
+        lags = np.arange(-len(s)+1, len(s))
+        return lags, corr
 
 
+    def plot_autocorr(self, ax, var, max_lag=400, filter_type=None, cutoff=0.01):
+        lags, corr = self.autocorr_scipy(var, filter_type=filter_type, cutoff=cutoff)
+        if len(lags) == 0:
+            ax.set_title(f"{var} (no data)")
+            return
+
+        mask = (lags >= 0) & (lags <= max_lag)
+        lags_plot = lags[mask]
+        corr_plot = corr[mask]
+
+        ax.plot(lags_plot, corr_plot)
+        ax.set_title(f"Autocorr: {var} ({filter_type if filter_type else 'raw'})")
+        ax.set_xlabel("Décalage (jours)")
+        ax.set_ylabel("Corrélation")
+        ax.set_xlim(0, max_lag)
+        ax.set_ylim(-0.2, 1)
+
+        # mark 1-year period
+        if max_lag >= 365:
+            ax.axvline(365, color='r', linestyle='--', label='1 an')
+            ax.legend()
+
+    def plot_autocorrs(self, args, max_lag=400, filter_type=None, cutoff=0.01):
+        fig, axes = plt.subplots(self.ROWS, self.COLS, figsize=(16, 4*self.ROWS))
+        axes = axes.flatten()
+        for ax, var in zip(axes, args):
+            self.plot_autocorr(ax, var, max_lag=max_lag, filter_type=filter_type, cutoff=cutoff)
+        for ax in axes[len(args):]:
+            ax.axis("off")
+        plt.tight_layout()
 
 
 if __name__ == "__main__":
@@ -130,7 +177,7 @@ if __name__ == "__main__":
     cutoff_value = float(input("Valeur cutoff (ex: 0.01): "))
 
     pltr.plot(args, filter_type=filter_choice, cutoff=cutoff_value)
-
+    pltr.plot_autocorrs(args)
     #i = 3
     #pltr.spectro(args[i], filter_type=filter_choice, cutoff=cutoff_value)
 
