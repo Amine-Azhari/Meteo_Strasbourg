@@ -113,6 +113,10 @@ class Plotting:
         plt.show()
 
 
+    def plot_spectros_grid(self, args, filter_type=None, cutoff=0.01):
+        pass
+
+
     @staticmethod
     def autocorr_scipy(var, filter_type=None, cutoff=0.01):
         s = pd.to_numeric(df[var], errors="coerce").dropna().values
@@ -180,7 +184,7 @@ if __name__ == "__main__":
     pltr = Plotting(duree)
 
     pltr.plot(args, filter_type=filter_choice, cutoff=cutoff_value)
-    #pltr.plot_spectros_grid(args, filter_type=filter_choice, cutoff=cutoff_value)
+    pltr.plot_spectros_grid(args, filter_type=filter_choice, cutoff=cutoff_value)
     pltr.plot_autocorrs(args, filter_type=filter_choice, cutoff=cutoff_value)
 
     plt.show()
